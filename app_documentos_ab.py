@@ -28,7 +28,7 @@ from pypdf import PdfReader
 # =========================
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_URL = "https://openrouter.ai/api/v1/messages"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 MODELS = {
     "Claude Opus 4.7": "anthropic/claude-opus-4.7",
