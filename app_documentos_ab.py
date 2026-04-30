@@ -112,11 +112,13 @@ def call_openrouter(system: str, user: str, model: str, max_tokens: int = 4000) 
         "HTTP-Referer": "https://talentree.es",
     }
 
+    # Combina system y user en un único mensaje
+    combined_message = f"{system}\n\n{user}"
+
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
+            {"role": "user", "content": combined_message},
         ],
         "max_tokens": max_tokens,
         "temperature": 0.2,
