@@ -131,6 +131,16 @@ def call_openrouter(system: str, user: str, model: str, max_tokens: int = 4000) 
         st.stop()
 
     data = response.json()
+
+    # Debug: mostrar respuesta si hay error
+    if "error" in data:
+        st.error(f"Error en respuesta OpenRouter: {data}")
+        st.stop()
+
+    if "choices" not in data or not data["choices"]:
+        st.error(f"Respuesta OpenRouter inválida (sin 'choices'): {data}")
+        st.stop()
+
     return data["choices"][0]["message"]["content"]
 
 
