@@ -167,6 +167,31 @@ def classify_document(filename: str, text: str) -> str:
     return "Otro / No clasificado"
 
 
+def extract_expediente_and_lote(text: str) -> tuple:
+    """Intenta extraer expediente y lote del contenido del documento."""
+    expediente = None
+    lote = None
+
+    # Busca patrones de expediente: 2021/3120012029/539, etc.
+    import re
+    exp_match = re.search(r'2021/\d+/\d{3}', text)
+    if exp_match:
+        expediente = exp_match.group(0)
+
+    # Busca patrón "Lote N" o "Lote N —"
+    lote_match = re.search(r'Lote\s+(\d+)', text, re.IGNORECASE)
+    if lote_match:
+        lote_num = lote_match.group(1)
+        # Intenta encontrar el nombre del lote después
+        sector_match = re.search(rf'Lote\s+{lote_num}\s*—?\s*([^,\n]+)', text)
+        if sector_match:
+            lote = f"Lote {lote_num} — {sector_match.group(1).strip()}"
+        else:
+            lote = f"Lote {lote_num}"
+
+    return expediente, lote
+
+
 # =========================
 # Síntesis
 # =========================
@@ -466,6 +491,22 @@ if uploaded_files:
     if rows:
         df = pd.DataFrame(rows)
         st.dataframe(df, use_container_width=True, hide_index=True)
+
+        # Verificar coherencia de expediente y lote
+        detected_expedientes = set()
+        detected_lotes = set()
+        for d in docs:
+            exp, lote = extract_expediente_and_lote(d.text)
+            if exp:
+                detected_expedientes.add(exp)
+            if lote:
+                detected_lotes.add(lote)
+
+        if detected_expedientes and expediente not in detected_expedientes:
+            st.warning(f"⚠️ Los documentos contienen expediente(s): {', '.join(detected_expedientes)}\nPero has configurado: {expediente}")
+
+        if detected_lotes:
+            st.info(f"📋 Lotes detectados en documentos: {', '.join(detected_lotes)}")
 
         st.info("📝 Puedes corregir manualmente el tipo de cada documento antes de generar.")
 
