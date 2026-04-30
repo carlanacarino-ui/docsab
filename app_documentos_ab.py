@@ -167,29 +167,42 @@ def classify_document(filename: str, text: str) -> str:
     return "Otro / No clasificado"
 
 
-def extract_expediente_and_lote(text: str) -> tuple:
-    """Intenta extraer expediente y lote del contenido del documento."""
-    expediente = None
-    lote = None
-
-    # Busca patrones de expediente: 2021/3120012029/539, etc.
+def extract_metadata_from_documents(docs: List[SourceDoc]) -> dict:
+    """Extrae expediente, lote, adjudicataria y contratante de los documentos."""
     import re
-    exp_match = re.search(r'2021/\d+/\d{3}', text)
-    if exp_match:
-        expediente = exp_match.group(0)
 
-    # Busca patrón "Lote N" o "Lote N —"
-    lote_match = re.search(r'Lote\s+(\d+)', text, re.IGNORECASE)
+    metadata = {
+        "expediente": None,
+        "lote": None,
+        "adjudicataria": None,
+        "contratante": None,
+    }
+
+    combined_text = "\n\n".join([d.text for d in docs])
+
+    # Extrae expediente: 2021/3120012029/539, etc.
+    exp_match = re.search(r'2021/\d+/\d{3}', combined_text)
+    if exp_match:
+        metadata["expediente"] = exp_match.group(0)
+
+    # Extrae Lote N — Descripción
+    lote_match = re.search(r'Lote\s+(\d+)\s*—?\s*([^,\n]+)', combined_text)
     if lote_match:
         lote_num = lote_match.group(1)
-        # Intenta encontrar el nombre del lote después
-        sector_match = re.search(rf'Lote\s+{lote_num}\s*—?\s*([^,\n]+)', text)
-        if sector_match:
-            lote = f"Lote {lote_num} — {sector_match.group(1).strip()}"
-        else:
-            lote = f"Lote {lote_num}"
+        lote_name = lote_match.group(2).strip()
+        metadata["lote"] = f"Lote {lote_num} — {lote_name}"
 
-    return expediente, lote
+    # Extrae adjudicataria: "Entidad adjudicataria: NOMBRE"
+    adj_match = re.search(r'[Ee]ntidad\s+adjudicataria\s*:\s*([^\n]+)', combined_text)
+    if adj_match:
+        metadata["adjudicataria"] = adj_match.group(1).strip()
+
+    # Extrae contratante: "Entidad contratante: NOMBRE"
+    con_match = re.search(r'[Ee]ntidad\s+contratante\s*:\s*([^\n]+)', combined_text)
+    if con_match:
+        metadata["contratante"] = con_match.group(1).strip()
+
+    return metadata
 
 
 # =========================
@@ -492,21 +505,39 @@ if uploaded_files:
         df = pd.DataFrame(rows)
         st.dataframe(df, use_container_width=True, hide_index=True)
 
-        # Verificar coherencia de expediente y lote
-        detected_expedientes = set()
-        detected_lotes = set()
-        for d in docs:
-            exp, lote = extract_expediente_and_lote(d.text)
-            if exp:
-                detected_expedientes.add(exp)
-            if lote:
-                detected_lotes.add(lote)
+        # Extraer metadatos de los documentos
+        detected_metadata = extract_metadata_from_documents(docs)
 
-        if detected_expedientes and expediente not in detected_expedientes:
-            st.warning(f"⚠️ Los documentos contienen expediente(s): {', '.join(detected_expedientes)}\nPero has configurado: {expediente}")
+        st.subheader("Metadatos detectados")
+        col1, col2 = st.columns(2)
+        with col1:
+            detected_expediente = st.text_input(
+                "Expediente",
+                value=detected_metadata["expediente"] or expediente or "",
+                key="meta_expediente"
+            )
+            detected_lote = st.text_input(
+                "Lote",
+                value=detected_metadata["lote"] or lote or "",
+                key="meta_lote"
+            )
+        with col2:
+            detected_adjudicataria = st.text_input(
+                "Adjudicataria",
+                value=detected_metadata["adjudicataria"] or adjudicataria or "",
+                key="meta_adjudicataria"
+            )
+            detected_contratante = st.text_input(
+                "Contratante",
+                value=detected_metadata["contratante"] or contratante or "",
+                key="meta_contratante"
+            )
 
-        if detected_lotes:
-            st.info(f"📋 Lotes detectados en documentos: {', '.join(detected_lotes)}")
+        # Actualizar variables con los valores detectados/editados
+        expediente = detected_expediente
+        lote = detected_lote
+        adjudicataria = detected_adjudicataria
+        contratante = detected_contratante
 
         st.info("📝 Puedes corregir manualmente el tipo de cada documento antes de generar.")
 
