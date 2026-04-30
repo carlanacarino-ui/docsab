@@ -239,8 +239,8 @@ Extrae una síntesis estructurada:
 Texto:
 {truncate_text(doc.text)}
 """.strip()
-    # Fase 1 usa Haiku (más barato)
-    return call_openrouter(system, user, "anthropic/claude-haiku-4.5", max_tokens=2000)
+    # Fase 1 usa Sonnet (mejor balance coste/calidad)
+    return call_openrouter(system, user, "anthropic/claude-sonnet-4", max_tokens=3000)
 
 
 def aggregate_summaries(summaries: Dict[str, str], sector: str, lote: str, expediente: str, model: str) -> str:
@@ -281,7 +281,8 @@ P. Datos ausentes
 Síntesis:
 {joined}
 """.strip()
-    return call_openrouter(system, user, "anthropic/claude-haiku-4.5", max_tokens=5000)
+    # Fase 1 usa Sonnet (mejor balance coste/calidad)
+    return call_openrouter(system, user, "anthropic/claude-sonnet-4", max_tokens=6000)
 
 
 # =========================
