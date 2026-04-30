@@ -239,7 +239,8 @@ Extrae una síntesis estructurada:
 Texto:
 {truncate_text(doc.text)}
 """.strip()
-    return call_openrouter(system, user, model, max_tokens=3000)
+    # Fase 1 usa Haiku (más barato)
+    return call_openrouter(system, user, "anthropic/claude-haiku-4.5", max_tokens=2000)
 
 
 def aggregate_summaries(summaries: Dict[str, str], sector: str, lote: str, expediente: str, model: str) -> str:
@@ -251,6 +252,7 @@ No inventes cifras; usa "No consta" cuando proceda.
 
     joined = "\n\n".join(f"===== {name} =====\n{summary}" for name, summary in summaries.items())
 
+    # Fase 1 usa Haiku (más barato)
     user = f"""
 Contexto:
 - Sector: {sector}
@@ -279,7 +281,7 @@ P. Datos ausentes
 Síntesis:
 {joined}
 """.strip()
-    return call_openrouter(system, user, model, max_tokens=6000)
+    return call_openrouter(system, user, "anthropic/claude-haiku-4.5", max_tokens=5000)
 
 
 # =========================
